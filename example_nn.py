@@ -5,7 +5,7 @@ from torchvision import datasets
 from torchvision.transforms import ToTensor
 
 BATCH_SIZE = 128
-EPOCHS = 10
+EPOCHS = 100
 LR = 1e-3
 
 
@@ -91,6 +91,9 @@ if __name__ == '__main__':
     train(feed_forward_net, train_data_loader,
           loss_fn, optimizer, device, epochs=EPOCHS)
 
-    torch.save(feed_forward_net.state_dict(), "trained_models/feedforwardnet.pth")
+    torch.save(feed_forward_net.state_dict(),
+               "trained_models/feedforwardnet.pth")
 
     print("model saved")
+    
+    
