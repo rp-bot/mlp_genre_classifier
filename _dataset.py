@@ -2,7 +2,7 @@ import os
 from torch.utils.data import Dataset
 import pandas as pd
 import torchaudio
-from torchaudio.transforms import MFCC
+from torchaudio.transforms import MFCC, MelSpectrogram
 import torch
 import matplotlib.pyplot as plt
 
@@ -39,7 +39,7 @@ class PatchBanksDataset(Dataset):
         signal = self.tranformation(signal)
 
         if signal.shape[0] != 1:
-            signal = torch.mean(signal, dim=0 ,keepdim=True)
+            signal = torch.mean(signal, dim=0, keepdim=True)
 
         return signal, label
 
@@ -52,17 +52,37 @@ if __name__ == '__main__':
 
     mel_spec = MFCC(
         sample_rate=SAMPLE_RATE,
-        n_mfcc=20,
+        n_mfcc=13,
         melkwargs={
 
             "n_fft": 1024,
-            "hop_length": 256,
-            "n_mels": 64,
+            "hop_length": 512,
+            "n_mels": 40,
         }
     )
 
+    # mel_spec = MelSpectrogram(
+    #     sample_rate=SAMPLE_RATE,
+    #     n_fft=1024,
+    #     hop_length=512,
+    #     n_mels=20
+    # )
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     pbd = PatchBanksDataset(annotations, audio_dir,
-                            mel_spec, SAMPLE_RATE, 3, device)
+                            mel_spec, SAMPLE_RATE, 2, device)
 
-    print(pbd[0][0].shape)
+    print(pbd[0][0][0].shape)
+    # for i, class_label in [(0, "house"), (1101, "tr_808"), (2201, "tr_909"), (3301, "hiphop"), (4401, "pop rock"), (5501, "retro"), (6601, "latin percussions"), (7701, "samba")]:
+    #     plt.figure(figsize=(10, 4))
+    #     plt.imshow(pbd[i][0][0].cpu().detach().numpy(),
+    #                cmap='viridis', aspect='auto')
+    #     plt.title(f'MFCC {class_label}')
+    #     plt.ylabel('Cepstrum Coefficients')
+    #     plt.xlabel('Time')
+    #     plt.colorbar(format='%+2.0f dB')
+    #     plt.gca().invert_yaxis()
+    #     plt.savefig(f"plots/features/MFCC_feature_{class_label}.png")
+
+    # plt.plot(pbd[0][0][0].cpu().detach().numpy())
+    # plt.savefig("example.png")
