@@ -2,8 +2,9 @@ import os
 from torch.utils.data import Dataset
 import pandas as pd
 import torchaudio
-from torchaudio.transforms import MelSpectrogram
+from torchaudio.transforms import MFCC
 import torch
+import matplotlib.pyplot as plt
 
 
 class PatchBanksDataset(Dataset):
@@ -32,16 +33,14 @@ class PatchBanksDataset(Dataset):
         fade_curve = torch.linspace(1, 0, fade_samples).to(signal.device)
 
         signal[:, -fade_samples:] *= fade_curve
-        
+
         # Ensure signal is stereo
 
         signal = self.tranformation(signal)
 
-        if signal.shape[0] == 1:
-            signal = signal.repeat(2, 1)
-        elif signal.shape[0] > 2:
-            signal = signal[:2, :] + signal[2:, :]
-    
+        if signal.shape[0] != 1:
+            signal = torch.mean(signal, dim=0 ,keepdim=True)
+
         return signal, label
 
 
@@ -51,15 +50,19 @@ if __name__ == '__main__':
     audio_dir = "data/PatchBanks"
     SAMPLE_RATE = 44_100
 
-    mel_spec = MelSpectrogram(
+    mel_spec = MFCC(
         sample_rate=SAMPLE_RATE,
-        n_fft=1024,
-        hop_length=512,
-        n_mels=64
+        n_mfcc=20,
+        melkwargs={
+
+            "n_fft": 1024,
+            "hop_length": 256,
+            "n_mels": 64,
+        }
     )
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     pbd = PatchBanksDataset(annotations, audio_dir,
-                            mel_spec, SAMPLE_RATE, 5, device)
+                            mel_spec, SAMPLE_RATE, 3, device)
 
-    print(pbd[0])
+    print(pbd[0][0].shape)

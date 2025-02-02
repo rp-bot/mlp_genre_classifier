@@ -9,6 +9,9 @@ torch = "*"
 torchaudio = "*"
 torchvision = "*"
 pandas = "*"
+matplotlib = "*"
+torchsummary = "*"
+tqdm = "*"
 
 [dev-packages]
 
