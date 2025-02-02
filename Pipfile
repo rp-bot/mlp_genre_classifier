@@ -12,6 +12,8 @@ pandas = "*"
 matplotlib = "*"
 torchsummary = "*"
 tqdm = "*"
+torchmetrics = "*"
+seaborn = "*"
 
 [dev-packages]
 

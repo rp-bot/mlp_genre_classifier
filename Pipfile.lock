@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "2172e9411152f94cc3d2c987542bcab41516115be3cb86ade874adc771811425"
+            "sha256": "ea499fdea5a3435801bd7120a1f36e42a94b2a9457b2c43b1d8a773b6d8653e1"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -151,11 +151,11 @@
         },
         "fsspec": {
             "hashes": [
-                "sha256:670700c977ed2fb51e0d9f9253177ed20cbde4a3e5c0283cc5385b5870c8533f",
-                "sha256:b520aed47ad9804237ff878b504267a3b0b441e97508bd6d2d8774e3db85cee2"
+                "sha256:1c24b16eaa0a1798afa0337aa0db9b256718ab2a89c425371f5628d22c3b6afd",
+                "sha256:9de2ad9ce1f85e1931858535bc882543171d197001a0a5eb2ddc04f1781ab95b"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==2024.12.0"
+            "version": "==2025.2.0"
         },
         "jinja2": {
             "hashes": [
@@ -250,6 +250,14 @@
             ],
             "markers": "python_version >= '3.10'",
             "version": "==1.4.8"
+        },
+        "lightning-utilities": {
+            "hashes": [
+                "sha256:95b5f22a0b69eb27ca0929c6c1d510592a70080e1733a055bf154903c0343b60",
+                "sha256:b827f5768607e81ccc7b2ada1f50628168d1cc9f839509c7e87c04b59079e66c"
+            ],
+            "markers": "python_version >= '3.9'",
+            "version": "==0.12.0"
         },
         "markupsafe": {
             "hashes": [
@@ -707,6 +715,15 @@
             ],
             "version": "==2025.1"
         },
+        "seaborn": {
+            "hashes": [
+                "sha256:636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987",
+                "sha256:93e60a40988f4d65e9f4885df477e2fdaff6b73a9ded434c1ab356dd57eefff7"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.8'",
+            "version": "==0.13.2"
+        },
         "setuptools": {
             "hashes": [
                 "sha256:c5afc8f407c626b8313a86e10311dd3f661c6cd9c09d4bf8c15c0e11f9f2b0e6",
@@ -783,6 +800,15 @@
             ],
             "index": "pypi",
             "version": "==2.6.0"
+        },
+        "torchmetrics": {
+            "hashes": [
+                "sha256:a5dc236694b392180949fdd0a0fcf2b57135c8b600e557c725e077eb41e53e64",
+                "sha256:c3090aa2341129e994c0a659abb6d4140ae75169a6ebf45bffc16c5cb553b38e"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.9'",
+            "version": "==1.6.1"
         },
         "torchsummary": {
             "hashes": [

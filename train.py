@@ -1,10 +1,14 @@
 import torch
+import matplotlib.pyplot as plt
+import seaborn as sns
 from torch import nn
 from torchaudio.transforms import MFCC
 from torch.utils.data import DataLoader, random_split
 from _dataset import PatchBanksDataset
 from _model import MLP
 from tqdm import tqdm
+from torchmetrics import ConfusionMatrix
+
 
 class_mappings = [
     "edm",
@@ -23,6 +27,10 @@ def evaluate(model, test_data_loader, loss_fn, device):
     total_loss = 0.0
     correct = 0
     total = 0
+
+    all_targets = []
+    all_preds = []
+
     with torch.no_grad():
         for inputs, targets in tqdm(test_data_loader, desc="Evaluating", leave=False):
             inputs, targets = inputs.to(device), targets.to(device)
@@ -34,10 +42,36 @@ def evaluate(model, test_data_loader, loss_fn, device):
             correct += (predicted == targets).sum().item()
             total += targets.size(0)
 
+            all_targets.append(targets)
+            all_preds.append(predicted)
+
     avg_loss = total_loss / len(test_data_loader)
     accuracy = 100.0 * correct / total if total > 0 else 0
     print(f"Validation Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%")
-    return avg_loss, accuracy
+
+    all_targets = torch.cat(all_targets).cpu()
+    all_preds = torch.cat(all_preds).cpu()
+
+    cm_metric = ConfusionMatrix(num_classes=8, normalize="true", task="multiclass")
+    cm = cm_metric(all_preds, all_targets)
+
+    cm_np = cm.numpy()
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(
+        cm_np,
+        annot=True,
+        fmt=".2f",
+        cmap="Blues",
+        xticklabels=class_mappings,
+        yticklabels=class_mappings,
+    )
+    plt.xlabel("Predicted Label")
+    plt.ylabel("True Label")
+    plt.title("Normalized Confusion Matrix")
+    plt.tight_layout()
+
+    plt.savefig("plots/metrics/confusion_matrix.png")
 
 
 def train_one_epoch(model, data_loader, loss_fn, optimizer, device):
@@ -62,16 +96,41 @@ def train_one_epoch(model, data_loader, loss_fn, optimizer, device):
     avg_loss = running_loss / len(data_loader)
     accuracy = 100.0 * correct / total
     print(f"Training Loss: {avg_loss:.4f}, Training Accuracy: {accuracy:.2f}%")
-    print("----------------------------")
+    return avg_loss, accuracy
 
 
 def train(model, train_data_loader, loss_fn, optimizer, device, epochs):
     model.train()
+    loss_during_training = []
+    accuracy_during_training = []
+
     for i in range(epochs):
         print(f"Epoch {i+1}")
-        train_one_epoch(model, train_data_loader, loss_fn, optimizer, device)
+        avg_loss, accuracy = train_one_epoch(
+            model, train_data_loader, loss_fn, optimizer, device
+        )
         print("----------------------------")
+        loss_during_training.append(avg_loss)
+        accuracy_during_training.append(accuracy)
     print("Training is Done")
+
+    epochs_range = range(1, epochs + 1)
+    plt.figure(figsize=(12, 6))
+    # loss
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_range, loss_during_training, label="Training Loss")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.title("Loss During Training")
+    plt.legend()
+    # accuracy
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_range, accuracy_during_training, label="Training Accuracy")
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy")
+    plt.title("Accuracy During Training")
+    plt.legend()
+    plt.savefig("plots/metrics/training_metrics.png")
 
 
 if __name__ == "__main__":
@@ -81,7 +140,7 @@ if __name__ == "__main__":
     audio_dir = "data/PatchBanks"
     SAMPLE_RATE = 44_100
     BATCH_SIZE = 128
-    EPOCHS = 10
+    EPOCHS = 20
     LR = 1e-3
 
     mfcc_transform = MFCC(
