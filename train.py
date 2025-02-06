@@ -2,12 +2,13 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 from torch import nn
-from torchaudio.transforms import MFCC
+from torchaudio.transforms import MFCC, Resample
 from torch.utils.data import DataLoader, random_split
 from _dataset import PatchBanksDataset
 from _model import MLP
 from tqdm import tqdm
 from torchmetrics import ConfusionMatrix
+from datetime import datetime
 
 
 class_mappings = [
@@ -70,8 +71,9 @@ def evaluate(model, test_data_loader, loss_fn, device):
     plt.ylabel("True Label")
     plt.title("Normalized Confusion Matrix")
     plt.tight_layout()
-
-    plt.savefig("plots/metrics/confusion_matrix.png")
+    current_time = datetime.now()
+    time_str = current_time.strftime("%m_%d_%H_%M")
+    plt.savefig(f"plots/metrics/confusion_matrix_{time_str}.png")
 
 
 def train_one_epoch(model, data_loader, loss_fn, optimizer, device):
@@ -99,7 +101,7 @@ def train_one_epoch(model, data_loader, loss_fn, optimizer, device):
     return avg_loss, accuracy
 
 
-def train(model, train_data_loader, loss_fn, optimizer, device, epochs):
+def train(model, train_data_loader, loss_fn, optimizer, scheduler, device, epochs):
     model.train()
     loss_during_training = []
     accuracy_during_training = []
@@ -109,6 +111,9 @@ def train(model, train_data_loader, loss_fn, optimizer, device, epochs):
         avg_loss, accuracy = train_one_epoch(
             model, train_data_loader, loss_fn, optimizer, device
         )
+        scheduler.step()
+        current_lr = optimizer.param_groups[0]["lr"]
+        print(f"Current Learning Rate: {current_lr}")
         print("----------------------------")
         loss_during_training.append(avg_loss)
         accuracy_during_training.append(accuracy)
@@ -130,22 +135,27 @@ def train(model, train_data_loader, loss_fn, optimizer, device, epochs):
     plt.ylabel("Accuracy")
     plt.title("Accuracy During Training")
     plt.legend()
-    plt.savefig("plots/metrics/training_metrics.png")
+    current_time = datetime.now()
+    time_str = current_time.strftime("%m_%d_%H_%M")
+    plt.savefig(f"plots/metrics/training_metrics_{time_str}.png")
 
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    torch.cuda.empty_cache()
+
     annotations = "data/PatchBanks/annotations.csv"
     audio_dir = "data/PatchBanks"
     SAMPLE_RATE = 44_100
+    TARGET_SAMPLE_RATE = 22_050
     BATCH_SIZE = 128
     EPOCHS = 20
     LR = 1e-3
 
     mfcc_transform = MFCC(
         sample_rate=SAMPLE_RATE,
-        n_mfcc=13,
+        n_mfcc=20,
         melkwargs={
             "n_fft": 1024,
             "hop_length": 512,
@@ -153,12 +163,10 @@ if __name__ == "__main__":
         },
     )
 
-    pbd = PatchBanksDataset(
-        annotations, audio_dir, mfcc_transform, SAMPLE_RATE, 2, device
-    )
+    resampler = Resample(SAMPLE_RATE, TARGET_SAMPLE_RATE)
 
     dataset = PatchBanksDataset(
-        annotations, audio_dir, mfcc_transform, SAMPLE_RATE, 2, device
+        annotations, audio_dir, mfcc_transform, resampler, SAMPLE_RATE, 2, device
     )
     total_size = len(dataset)
     train_size = int(0.7 * total_size)
@@ -170,12 +178,24 @@ if __name__ == "__main__":
     test_data_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
     mlp_network = MLP().to(device)
+    # mlp_network.load_state_dict(torch.load("trained_models/MLP_2_3_311.pth"))
 
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(mlp_network.parameters(), lr=LR)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=EPOCHS, eta_min=1e-6
+    )
 
     print("Training Model")
-    train(mlp_network, train_data_loader, loss_fn, optimizer, device, epochs=EPOCHS)
+    train(
+        mlp_network,
+        train_data_loader,
+        loss_fn,
+        optimizer,
+        scheduler,
+        device,
+        epochs=EPOCHS,
+    )
     print("============================")
 
     print("Final Evaluation on Test Set:")
@@ -183,5 +203,7 @@ if __name__ == "__main__":
     print("============================")
 
     print("saving Model")
-    torch.save(mlp_network.state_dict(), "trained_models/MLP.pth")
+    current_time = datetime.now()
+    time_str = current_time.strftime("%m_%d_%H_%M")
+    torch.save(mlp_network.state_dict(), f"trained_models/MLP_{time_str}.pth")
     print("model saved")
