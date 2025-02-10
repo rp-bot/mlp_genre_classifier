@@ -143,6 +143,7 @@ if __name__ == "__main__":
 
     print(f"Train set size: {train_size}, Test set size: {test_size}")
 
+    # How many train and test samnpels for each class
 
     # plt.figure(figsize=(10, 4))
     # plt.imshow(pbd[0][0][0].cpu().detach().numpy(), cmap="viridis", aspect="auto")

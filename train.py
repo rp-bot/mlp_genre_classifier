@@ -25,7 +25,7 @@ class_mappings = [
 ]
 
 
-def evaluate(model, test_data_loader, loss_fn, device):
+def evaluate(model, test_data_loader, loss_fn, device, num_classes):
     model.eval()
     total_loss = 0.0
     correct = 0
@@ -55,7 +55,9 @@ def evaluate(model, test_data_loader, loss_fn, device):
     all_targets = torch.cat(all_targets).cpu()
     all_preds = torch.cat(all_preds).cpu()
 
-    cm_metric = ConfusionMatrix(num_classes=8, normalize="true", task="multiclass")
+    cm_metric = ConfusionMatrix(
+        num_classes=num_classes, normalize="none", task="multiclass"
+    )
     cm = cm_metric(all_preds, all_targets)
 
     cm_np = cm.numpy()
@@ -197,10 +199,8 @@ if __name__ == "__main__":
     # train_dataloader = DataLoader(train_dataset, batch_sampler=train_sampler)
     test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-  
-
     mlp_network = MLP().to(device)
-    mlp_network.load_state_dict(torch.load("trained_models/MLP_02_09_18_09.pth"))
+    # mlp_network.load_state_dict(torch.load("trained_models/MLP_02_09_18_09.pth"))
 
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(mlp_network.parameters(), lr=LR)
@@ -209,21 +209,21 @@ if __name__ == "__main__":
     )
 
     print("Training Model")
-    # train(
-    #     mlp_network,
-    #     loss_fn,
-    #     optimizer,
-    #     scheduler,
-    #     device,
-    #     epochs=EPOCHS,
-    #     train_labels=train_labels,
-    #     train_dataset=train_dataset,
-    #     batch_size=BATCH_SIZE,
-    # )
+    train(
+        mlp_network,
+        loss_fn,
+        optimizer,
+        scheduler,
+        device,
+        epochs=EPOCHS,
+        train_labels=train_labels,
+        train_dataset=train_dataset,
+        batch_size=BATCH_SIZE,
+    )
     print("============================")
 
     print("Final Evaluation on Test Set:")
-    evaluate(mlp_network, test_dataloader, loss_fn, device)
+    evaluate(mlp_network, test_dataloader, loss_fn, device, num_classes=8)
     print("============================")
 
     print("saving Model")
