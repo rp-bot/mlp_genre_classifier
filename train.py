@@ -1,10 +1,12 @@
 import torch
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from torch import nn
 from torchaudio.transforms import MFCC, Resample
-from torch.utils.data import DataLoader, random_split
-from _dataset import PatchBanksDataset
+from torch.utils.data import DataLoader, random_split, Subset
+from sklearn.model_selection import train_test_split
+from _dataset import PatchBanksDataset, StratifiedBatchSampler
 from _model import MLP
 from tqdm import tqdm
 from torchmetrics import ConfusionMatrix
@@ -101,15 +103,28 @@ def train_one_epoch(model, data_loader, loss_fn, optimizer, device):
     return avg_loss, accuracy
 
 
-def train(model, train_data_loader, loss_fn, optimizer, scheduler, device, epochs):
+def train(
+    model,
+    loss_fn,
+    optimizer,
+    scheduler,
+    device,
+    epochs,
+    train_labels,
+    train_dataset,
+    batch_size,
+):
+
     model.train()
     loss_during_training = []
     accuracy_during_training = []
 
     for i in range(epochs):
+        train_sampler = StratifiedBatchSampler(train_labels, batch_size, seed=42)
+        train_dataloader = DataLoader(train_dataset, batch_sampler=train_sampler)
         print(f"Epoch {i+1}")
         avg_loss, accuracy = train_one_epoch(
-            model, train_data_loader, loss_fn, optimizer, device
+            model, train_dataloader, loss_fn, optimizer, device
         )
         scheduler.step()
         current_lr = optimizer.param_groups[0]["lr"]
@@ -150,8 +165,9 @@ if __name__ == "__main__":
     SAMPLE_RATE = 44_100
     TARGET_SAMPLE_RATE = 22_050
     BATCH_SIZE = 128
-    EPOCHS = 20
+    EPOCHS = 10
     LR = 1e-3
+    SEED = 42
 
     mfcc_transform = MFCC(
         sample_rate=SAMPLE_RATE,
@@ -168,17 +184,23 @@ if __name__ == "__main__":
     dataset = PatchBanksDataset(
         annotations, audio_dir, mfcc_transform, resampler, SAMPLE_RATE, 2, device
     )
-    total_size = len(dataset)
-    train_size = int(0.7 * total_size)
-    test_size = total_size - train_size
-
+    train_size = int(0.7 * len(dataset))
+    test_size = len(dataset) - train_size
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
-    train_data_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    test_data_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    train_labels = [dataset.annotations.iloc[i, 3] for i in train_dataset.indices]
+    test_labels = [dataset.annotations.iloc[i, 3] for i in test_dataset.indices]
+
+    # train_sampler = StratifiedBatchSampler(train_labels, BATCH_SIZE, seed=42)
+    # test_sampler = StratifiedBatchSampler(test_labels, BATCH_SIZE, seed=42)
+
+    # train_dataloader = DataLoader(train_dataset, batch_sampler=train_sampler)
+    test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+  
 
     mlp_network = MLP().to(device)
-    # mlp_network.load_state_dict(torch.load("trained_models/MLP_2_3_311.pth"))
+    mlp_network.load_state_dict(torch.load("trained_models/MLP_02_09_18_09.pth"))
 
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(mlp_network.parameters(), lr=LR)
@@ -187,19 +209,21 @@ if __name__ == "__main__":
     )
 
     print("Training Model")
-    train(
-        mlp_network,
-        train_data_loader,
-        loss_fn,
-        optimizer,
-        scheduler,
-        device,
-        epochs=EPOCHS,
-    )
+    # train(
+    #     mlp_network,
+    #     loss_fn,
+    #     optimizer,
+    #     scheduler,
+    #     device,
+    #     epochs=EPOCHS,
+    #     train_labels=train_labels,
+    #     train_dataset=train_dataset,
+    #     batch_size=BATCH_SIZE,
+    # )
     print("============================")
 
     print("Final Evaluation on Test Set:")
-    evaluate(mlp_network, test_data_loader, loss_fn, device)
+    evaluate(mlp_network, test_dataloader, loss_fn, device)
     print("============================")
 
     print("saving Model")

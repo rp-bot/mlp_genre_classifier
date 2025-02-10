@@ -14,6 +14,7 @@ torchsummary = "*"
 tqdm = "*"
 torchmetrics = "*"
 seaborn = "*"
+scikit-learn = "*"
 
 [dev-packages]
 

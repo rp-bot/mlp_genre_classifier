@@ -89,7 +89,7 @@ class MLP(nn.Module):
     def __init__(self):
         super().__init__()
         self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(20 * 87, 512)
+        self.fc1 = nn.Linear(87*20, 512)
         # self.fc2 = nn.Linear(512, 256)
 
         self.fc4 = nn.Linear(512, 8)
@@ -114,4 +114,4 @@ if __name__ == "__main__":
 
     model = MLP()
 
-    summary(model.cuda(), (1, 20, 87))
+    summary(model.cuda(), (1, 87, 20))
